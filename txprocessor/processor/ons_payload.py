@@ -5,7 +5,7 @@ class OnsPayload:
     def __init__(self, payload):
         try:
             # The payload is csv utf-8 encoded string
-            gsCode, action, data = payload.decode().split(",")
+            gsCode, action, data = payload.decode()[2:].split(",")
         except ValueError:
             raise InvalidTransaction("Invalid payload serialization")
 
