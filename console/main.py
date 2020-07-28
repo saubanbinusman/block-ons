@@ -5,6 +5,7 @@ from hashlib import sha512
 
 from sawtooth_signing import create_context
 from sawtooth_signing import CryptoFactory
+from sawtooth_signing.secp256k1 import Secp256k1PrivateKey
 
 from sawtooth_sdk.protobuf.transaction_pb2 import Transaction
 from sawtooth_sdk.protobuf.transaction_pb2 import TransactionHeader
@@ -16,30 +17,46 @@ from sawtooth_sdk.protobuf.batch_pb2 import BatchList
 import urllib.request
 from urllib.error import HTTPError
 
-def create_new_user():
-    context = create_context('secp256k1')
-    private_key = context.new_random_private_key()
-    signer = CryptoFactory(context).new_signer(private_key)
-
-    return private_key, signer
+context = create_context('secp256k1')
 
 
-def get_payload():
-    payload = {
-        'Verb': 'set',
-        'Name': 'foo',
-        'Value': 42
-    }
-
-    payload_bytes = cbor.dumps(payload)
-
-    return payload_bytes
+def create_user(username):
+    with open(F"{username}.priv", "w") as private_key_file:
+        private_key_file.write(create_private_key().as_hex())
 
 
-def get_batch_list():
-    private_key, signer = create_new_user()
+def get_signer(private_key):
+    return CryptoFactory(context).new_signer(private_key)
 
-    payload_bytes = get_payload()
+
+def create_private_key():
+    return context.new_random_private_key()
+
+
+def to_key_object(private_key_hex):
+    return Secp256k1PrivateKey.from_hex(private_key_hex)
+
+
+def get_payload(gsCode, action, data):
+    payload = F"{gsCode},{action},{data}".encode("utf-8")
+    return cbor.dumps(payload)
+
+
+def get_batch_list(private_key):
+    signer = get_signer(private_key)
+
+    action = input("Enter action (create, update, delete, exit): ")
+    if action not in ("create", "update", "delete", "exit"):
+        print("Invalid action.")
+        return
+    
+    if action == "exit":
+        exit(0)
+    
+    gsCode = input("Enter GS-Code: ")
+    data = "" if action == "delete" else input("Enter Data: ")
+    
+    payload_bytes = get_payload(gsCode, action, data)
 
     # Create TX Header
     txn_header_bytes = TransactionHeader(
@@ -62,7 +79,6 @@ def get_batch_list():
         dependencies=[],
         payload_sha512=sha512(payload_bytes).hexdigest()
     ).SerializeToString()
-
     
     signature = signer.sign(txn_header_bytes)
 
@@ -97,18 +113,42 @@ def get_batch_list():
 
 
 def main():
-    output = open('intkey.batches', 'wb')
-    output.write(get_batch_list())
+    username = input("Enter username: ")
+    filename = F"{username}.priv"
 
-    # try:
-    #     request = urllib.request.Request(
-    #         'http://127.0.0.1:8008/batches',
-    #         get_batch_list(),
-    #         method='POST',
-    #         headers={'Content-Type': 'application/octet-stream'})
-    #     response = urllib.request.urlopen(request)
+    if not os.path.isfile(filename):
+        print("Username does not exist. Login failed!")
+        option = input("Do you want to create a new user? (y/n): ")
+        
+        if option.lower() == "y":
+            create_user(username)
+        else:
+            return
+    
+    with open(filename, "r") as private_key_file:
+        private_key = private_key_file.read()
+    
+    private_key = to_key_object(private_key)
 
-    # except HTTPError as e:
-    #     response = e.file
+    while True:
+        batch_list = get_batch_list(private_key)
+
+        try:
+            request = urllib.request.Request(
+                'http://127.0.0.1:8008/batches',
+                batch_list,
+                method='POST',
+                headers={'Content-Type': 'application/octet-stream'})
+            response = urllib.request.urlopen(request)
+            try:
+                print(response.msg)
+            except Exception:
+                pass
+            
+            print(response.getcode())
+
+        except HTTPError as e:
+            response = e.file
+            print(response)
 
 main()
