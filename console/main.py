@@ -63,9 +63,9 @@ def get_batch_list(private_key):
         family_name='BlockONSTXHandler',
         family_version='1.0',
         # inputs=['1cf1266e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7'],
-        inputs=[],
+        inputs=['007007'],
         # outputs=['1cf1266e282c41be5e4254d8820772c5518a2c5a8c0c7f7eda19594a7eb539453e1ed7'],
-        outputs=[],
+        outputs=['007007'],
         signer_public_key=signer.get_public_key().as_hex(),
         # In this example, we're signing the batch with the same private key,
         # but the batch can be signed by another party, in which case, the
