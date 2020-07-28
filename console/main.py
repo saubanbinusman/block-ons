@@ -18,6 +18,8 @@ import json
 import requests
 import traceback
 
+from base64 import b64decode
+
 context = create_context('secp256k1')
 
 
@@ -44,15 +46,15 @@ def get_payload(gsCode, action, data):
         "action": action,
         "data": data
     }
-    
+
     return cbor.dumps(payload)
 
 
 def get_batch_list(private_key):
     signer = get_signer(private_key)
 
-    action = input("Enter action (create, update, delete, exit): ")
-    if action not in ("create", "update", "delete", "exit"):
+    action = input("Enter action (create, update, delete, query, exit): ")
+    if action not in ("create", "update", "delete", "query", "exit"):
         print("Invalid action.")
         return None
     
@@ -60,6 +62,30 @@ def get_batch_list(private_key):
         exit(0)
     
     gsCode = input("Enter GS-Code: ")
+    
+    if action == "query":
+        BASE_URL = "http://localhost:8008/state"
+        address = '007007' + sha512(gsCode.encode('utf-8')).hexdigest()[:64]
+
+        response = requests.get(BASE_URL, params={"address": address})
+
+        if response.status_code != 200:
+            print("ERROR: Server returned error code! " + response.status_code)
+        
+        try:
+            data = response.json()["data"]
+
+            if len(data) == 0:
+                print("No entry found against given GS1-Code.")
+            else:
+                gsCode, owner_key, data = b64decode(data[0]["data"]).decode().split(",")
+
+                print(F"Response:\n\tGS-Code: {gsCode}\n\tOwner Public Key: {owner_key}\n\tData: {data}")
+        except:
+            print("ERROR: Could not parse server response.")
+
+        return None
+    
     data = "" if action == "delete" else input("Enter Data: ")
     
     payload_bytes = get_payload(gsCode, action, data)
