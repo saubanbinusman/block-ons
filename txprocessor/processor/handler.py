@@ -32,9 +32,7 @@ class BlockONSTXHandler(TransactionHandler):
             if ons_state.get_record(ons_payload.gsCode) is not None:
                 raise InvalidTransaction(F'Invalid action: Record already exists: {ons_payload.gsCode}')
 
-            record = Record(gsCode=ons_payload.gsCode,
-                        owner_pk=signer,
-                        data=ons_payload.data)
+            record = Record(gsCode=ons_payload.gsCode, owner_pk=signer, data=ons_payload.data)
 
             ons_state.set_record(ons_payload.gsCode, record)
             print(F"Record Owner {signer[:6]} created a record.")
@@ -52,7 +50,7 @@ class BlockONSTXHandler(TransactionHandler):
 
             ons_state.set_record(ons_payload.gsCode, record)
 
-            print(F"Record Owner {signer[:6]} updated record: {ons_payload.gsCode} {ons_payload.data}\n\n")
+            print(F"Record Owner {signer[:6]} updated record: {ons_payload.gsCode} {ons_payload.data}")
         
         elif ons_payload.action == 'delete':
             record = ons_state.get_record(ons_payload.gsCode)
@@ -64,6 +62,8 @@ class BlockONSTXHandler(TransactionHandler):
                 raise InvalidTransaction('Invalid action: Record cannot be deleted by non-owner')
 
             ons_state.delete_record(ons_payload.gsCode)
+
+            print(F"Record Owner {signer[:6]} deleted record: {ons_payload.gsCode}")
         
         else:
             raise InvalidTransaction('Unhandled action: {}'.format(ons_payload.action))

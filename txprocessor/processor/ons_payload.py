@@ -1,3 +1,5 @@
+import cbor
+
 from sawtooth_sdk.processor.exceptions import InvalidTransaction
 
 class OnsPayload:
@@ -5,7 +7,10 @@ class OnsPayload:
     def __init__(self, payload):
         try:
             # The payload is csv utf-8 encoded string
-            gsCode, action, data = payload.decode()[2:].split(",")
+            gsCode = payload["gsCode"]
+            action = payload["action"]
+            data = payload["data"]
+        
         except ValueError:
             raise InvalidTransaction("Invalid payload serialization")
 
@@ -27,7 +32,7 @@ class OnsPayload:
 
     @staticmethod
     def from_bytes(payload):
-        return OnsPayload(payload=payload)
+        return OnsPayload(payload=cbor.loads(payload))
 
     @property
     def gsCode(self):
