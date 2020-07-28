@@ -11,3 +11,5 @@ def main():
     processor.add_handler(handler)
 
     processor.start()
+
+main()
