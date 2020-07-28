@@ -14,8 +14,9 @@ from sawtooth_sdk.protobuf.batch_pb2 import Batch
 from sawtooth_sdk.protobuf.batch_pb2 import BatchHeader
 from sawtooth_sdk.protobuf.batch_pb2 import BatchList
 
-import urllib.request
-from urllib.error import HTTPError
+import json
+import requests
+import traceback
 
 context = create_context('secp256k1')
 
@@ -38,7 +39,12 @@ def to_key_object(private_key_hex):
 
 
 def get_payload(gsCode, action, data):
-    payload = F"{gsCode},{action},{data}".encode("utf-8")
+    payload = {
+        "gsCode": gsCode,
+        "action": action,
+        "data": data
+    }
+    
     return cbor.dumps(payload)
 
 
@@ -48,7 +54,7 @@ def get_batch_list(private_key):
     action = input("Enter action (create, update, delete, exit): ")
     if action not in ("create", "update", "delete", "exit"):
         print("Invalid action.")
-        return
+        return None
     
     if action == "exit":
         exit(0)
@@ -133,22 +139,17 @@ def main():
     while True:
         batch_list = get_batch_list(private_key)
 
-        try:
-            request = urllib.request.Request(
-                'http://127.0.0.1:8008/batches',
-                batch_list,
-                method='POST',
-                headers={'Content-Type': 'application/octet-stream'})
-            response = urllib.request.urlopen(request)
-            try:
-                print(response.msg)
-            except Exception:
-                pass
-            
-            print(response.getcode())
+        if not batch_list:
+            continue
 
-        except HTTPError as e:
-            response = e.file
-            print(response)
+        try:
+            response = requests.post('http://127.0.0.1:8008/batches', data=batch_list, headers={'Content-Type': 'application/octet-stream'})
+            if response.status_code >= 400:
+                print("ERROR in HTTP Request!")
+            else:
+                print(response.json()["link"])
+
+        except Exception:
+            traceback.print_exc()
 
 main()
