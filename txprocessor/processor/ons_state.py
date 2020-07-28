@@ -54,7 +54,7 @@ class OnsState:
 
         self._store_record(gsCode, records=records)
 
-    def get_game(self, gsCode):
+    def get_record(self, gsCode):
         """Get the record associated with gsCode.
         Args:
             gsCode (str): The code.
