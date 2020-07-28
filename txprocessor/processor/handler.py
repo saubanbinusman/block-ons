@@ -1,4 +1,8 @@
 from sawtooth_sdk.processor.handler import TransactionHandler
+from sawtooth_sdk.processor.exceptions import InvalidTransaction
+
+from ons_payload import OnsPayload
+from ons_state import OnsState
 
 class BlockONSTXHandler(TransactionHandler):
     def __init__(self, namespace_prefix):
@@ -17,4 +21,18 @@ class BlockONSTXHandler(TransactionHandler):
         return [self._namespace_prefix]
 
     def apply(self, transaction, context):
-        print("HELLLLLLOOOO!!")
+        header = transaction.header
+        signer = header.signer_public_key
+
+        ons_payload = OnsPayload.from_bytes(transaction.payload)
+
+        ons_state = OnsState(context)
+
+        if ons_payload.action == 'delete':
+            pass
+        elif ons_payload.action == 'create':
+            pass
+        elif ons_payload.action == 'take':
+            pass
+        else:
+            raise InvalidTransaction('Unhandled action: {}'.format(ons_payload.action))
